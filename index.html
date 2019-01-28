@@ -1,0 +1,106 @@
+<html>
+  <head>
+    <script src="lib/codemirror.js"></script>
+    <link rel="stylesheet" href="lib/codemirror.css">
+    <script src="mode/javascript/javascript.js"></script>
+
+    <script src="https://unpkg.com/jshint@2.9.6/dist/jshint.js"></script>
+
+    <script src="addon/hint/show-hint.js"></script>
+    <script src="addon/hint/javascript-hint.js"></script>
+    <link rel="stylesheet" href="addon/hint/show-hint.css">
+
+    <script src="addon/lint/lint.js"></script>
+    <script src="addon/lint/javascript-lint.js"></script>
+    <link rel="stylesheet" href="addon/lint/lint.css">
+
+    <style>
+      .err {
+        background-color: pink;
+        color: darkred;
+      }
+
+      .grid-container {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        grid-gap: 5px;
+      }
+
+      #editor {
+        border: 1px solid darkgray;
+      }
+
+      #preview {
+        border: 1px solid darkgray;
+      }
+    </style>
+
+  </head>
+  <body>
+      <div class="grid-container">
+        <div id="editor"></div>
+        <div id="preview"></div>
+      <div>
+      <div id="debug_console"></div>
+
+      <!-- L2C files below -->
+
+      <!-- L2C files above -->
+
+      <script>
+        Error.prepareStackTrace = function(error, structuredStackTrace) {
+           return structuredStackTrace;
+        };
+
+        function formatEvalError(err) {
+           // find first eval
+           const stack = err.stack
+           let evalSite = null;
+           for (let i = 0; i < stack.length; i++) {
+             console.log(stack[i].getEvalOrigin())
+             if (stack[i].isEval()) {
+               evalSite = stack[i];
+               break;
+             }
+           }
+           if (evalSite) {
+             return `<table width="100%"><tr><td width="100%">${err}</td><td nowrap>Line: ${evalSite.getLineNumber()}</td><td nowrap>Column: ${evalSite.getColumnNumber()}</td></tr></table>`
+           }
+           return err
+        }
+
+        let debug_console = document.getElementById('debug_console')
+        function debug (){
+          let output=''
+          for (let i=0;i<arguments.length;i++) {
+            output+=arguments[i]+' '
+          }
+          debug_console.innerText+=output+"\n"
+        }
+
+        function saveAndRun(editor) {
+          debug_console.innerHTML = ''
+          debug_console.className = ''
+          try {
+            // TODO catch syntax errors somehow
+            results = eval(editor.doc.getValue())
+            // TODO refresh preview
+          } catch(err) {
+            debug_console.className = 'err'
+            debug_console.innerHTML = formatEvalError(err)
+          }
+        }
+
+        let editor = CodeMirror(document.getElementById('editor'),{
+          lineNumbers: true,
+          lineWrapping: true,
+          gutters: ["CodeMirror-lint-markers"],
+          lint: true,
+          extraKeys: {
+            "Ctrl-Space": "autocomplete",
+            "Ctrl-S": saveAndRun,
+          },
+        })
+      </script>
+  </body>
+</html>
